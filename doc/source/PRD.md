@@ -5,9 +5,9 @@
 | 项目 | 内容 |
 |------|------|
 | 产品名称 | xalpha |
-| 版本号 | 0.12.2 |
+| 版本号 | 0.12.3 |
 | 作者 | refraction-ray |
-| 文档版本 | 1.0 |
+| 文档版本 | 1.1 |
 | 创建日期 | 2026-01-22 |
 | 许可证 | MIT License |
 
@@ -404,6 +404,50 @@ class BTE:
 | `Scheduled` | 无脑定投策略 |
 | `AverageScheduled` | 价值平均定投 |
 | `ScheduledSellonXIRR` | 定投+收益率止盈 |
+| `Balance` | 动态平衡策略 |
+| `Grid` | 网格交易策略 |
+
+**动态平衡策略 (Balance)**：
+
+```python
+class Balance(xa.backtest.BTE):
+    """
+    动态平衡策略 - 在指定检查日期重新平衡投资组合
+    
+    参数:
+    - check_dates: List[datetime], 检查日期列表
+    - portfolio_dict: Dict[str, float], 目标权重配置 {基金代码: 权重}
+    
+    策略逻辑:
+    1. 初始按权重分配资金买入
+    2. 在检查日期计算当前各基金市值与目标比例偏差
+    3. 偏差为正则卖出，偏差为负则买入，实现再平衡
+    """
+```
+
+**网格交易策略 (Grid)**：
+
+```python
+class Grid(xa.backtest.BTE):
+    """
+    网格交易策略 - 在价格网格上自动低买高卖
+    
+    参数:
+    - code: str, 交易标的代码
+    - prices: List[float], 价格网格列表(从低到高)
+    - inamount: float, 每格买入份额
+    - outamount: float, 每格卖出份额
+    
+    策略逻辑:
+    1. 监控每日最高价和最低价
+    2. 当价格穿越网格线时触发买入或卖出
+    3. 自动维护当前网格位置(pos)
+    
+    核心属性:
+    - cftable: pd.DataFrame, 现金流量表 [date, cash, share]
+    - pos: int, 当前网格位置
+    """
+```
 
 **自定义策略示例**：
 
@@ -519,7 +563,7 @@ xa.show_providers()
 
 | 环境 | 要求 |
 |-----|------|
-| Python 版本 | >= 3.6 |
+| Python 版本 | >= 3.6 (推荐 3.8+) |
 | 操作系统 | Windows/macOS/Linux |
 | 运行环境 | 本地/Jupyter/量化云平台 |
 
@@ -527,22 +571,23 @@ xa.show_providers()
 
 **核心依赖**：
 
-| 包名 | 用途 |
-|-----|------|
-| pandas | 数据处理 |
-| numpy | 数值计算 |
-| requests | 网络请求 |
-| beautifulsoup4 | HTML解析 |
-| pyecharts | 可视化 |
-| scipy | 科学计算 |
+| 包名 | 版本要求 | 用途 |
+|-----|---------|------|
+| pandas | >= 1.0 | 数据处理 (支持 pandas 2.0) |
+| numpy | >= 1.0 | 数值计算 |
+| requests | - | 网络请求 |
+| beautifulsoup4 | >= 4.9.0 | HTML解析 |
+| pyecharts | == 1.7.1 | 可视化 |
+| scipy | - | 科学计算 |
+| lxml | - | XML/HTML 解析 |
+| xlrd | >= 1.0.0 | Excel 读取 |
 
 **可选依赖**：
 
 | 包名 | 用途 |
 |-----|------|
 | jqdatasdk | 聚宽数据源 |
-| sqlalchemy | SQL后端存储 |
-| xlrd | Excel读取 |
+| sqlalchemy | >= 1.4 (SQL后端存储) |
 
 ### 3.4 数据安全
 
@@ -755,6 +800,11 @@ print(f"年化收益率: {result.xirrrate():.2%}")
 - [x] 可转债定价
 - [x] 动态回测框架
 - [x] 多数据源支持
+- [x] 网格交易回测模板 (v0.12.3)
+- [x] 动态平衡策略 (v0.12.3)
+- [x] 通过 cftable 灵活生成 trade/itrade (v0.12.3)
+- [x] pandas 2.0 完全兼容 (v0.12.3)
+- [x] 2026 交易日历 (v0.12.3)
 
 ### 6.2 规划功能
 
@@ -794,8 +844,40 @@ print(f"年化收益率: {result.xirrrate():.2%}")
 |-----|------|---------|
 | 0.3.0 | - | 支持通用数据获取器 |
 | 0.9.0 | - | 支持底层持仓穿透 |
-| 0.12.2 | - | 当前稳定版本 |
+| 0.12.2 | 2025-01-01 | 固定 numpy 版本，修复雪球数据获取 |
+| 0.12.3 | 2025-12-17 | **当前稳定版本**<br>• 更新 2026 交易日历<br>• 增加网格回测模板类 (Grid)<br>• 增加动态平衡策略 (Balance)<br>• 通过 cftable 更灵活生成 trade/itrade<br>• pandas 2.0 完全兼容<br>• 放宽 SQLAlchemy 和 NumPy 版本要求<br>• 修复日历检查和缓存键平台兼容性 |
 
 ---
 
-*本文档基于 xalpha v0.12.2 源代码分析生成*
+### 7.4 v0.12.3 技术变更详情
+
+#### pandas 2.0 兼容性更新
+
+```python
+# 旧版写法 (已废弃)
+df = df.append(new_row, ignore_index=True)
+
+# 新版写法 (v0.12.3)
+df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+```
+
+**影响模块**：
+- `xalpha/backtest.py` - BTE 和 Grid 类
+- `xalpha/trade.py` - trade/itrade 类
+- `xalpha/info.py` - fundinfo 类
+- `xalpha/multiple.py` - mul 类
+- `xalpha/record.py` - record 类
+
+#### 跨平台缓存键兼容
+
+```python
+# 旧版 (Windows 不兼容)
+cache_key = f"data:{code}:{start}"
+
+# 新版 (v0.12.3)
+cache_key = f"data {code} {start}"  # 使用空格替代冒号
+```
+
+---
+
+*本文档基于 xalpha v0.12.3 源代码分析生成，更新日期：2026-01-22*
