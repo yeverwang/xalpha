@@ -9,6 +9,7 @@ Welcome to xalpha's documentation!
 .. toctree::
    :maxdepth: 2
 
+   PRD.md
    quickstart.rst
    demo.rst
    advance.rst

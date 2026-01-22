@@ -62,6 +62,8 @@ xalpha 不止如此，更多特性，欢迎探索。不只是数据，更是工�
 
 在线文档地址： https://xalpha.readthedocs.io/
 
+**产品需求文档 (PRD)**：详细的功能架构、API 参考和使用场景，请查看 [PRD.md](doc/source/PRD.md)
+
 或者通过以下命令，在本地`doc/build/html`内阅读文档。
 
 ```bash
